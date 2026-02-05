@@ -9,3 +9,9 @@ Puedes verificar si los tienes instalados ejecutando en tu terminal:
 node -v
 npm -v
 ```
+
+Para hacer correr este proyecto deberás usar el comando:
+
+```bash
+npm run dev
+```

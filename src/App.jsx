@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
 
-// Diccionario de colores por tipo de Pokémon
 const TYPE_COLORS = {
   fire: "#FDDFDF",
   grass: "#DEFDE0",
@@ -24,117 +23,131 @@ const TYPE_COLORS = {
 };
 
 const Pokedex = () => {
-  // --- Estados ---
   const [pokemonList, setPokemonList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estados de Filtros (El "Super Buscador")
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState([]); // Selección Múltiple (+5 pts)
-  const [isNotMode, setIsNotMode] = useState(false); // Operador NOT
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [isNotMode, setIsNotMode] = useState(false);
   const [availableTypes, setAvailableTypes] = useState([]);
 
-  // --- Carga de Datos (Requerimiento A) ---
-  useEffect(() => {
-    const fetchPokemon = async () => {
-      try {
-        setLoading(true);
-        // 1. Obtener lista base (999 items)
-        const response = await fetch(
-          "https://pokeapi.co/api/v2/pokemon?limit=999",
-        );
-        if (!response.ok) throw new Error("Error conectando con PokéApi");
+  // 1. LÓGICA DE CARGA EXTRAÍDA (useCallback para que no se recree)
+  // <--- NUEVO: Función reutilizable para cargar datos
+  const fetchPokemon = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Limpiamos error previo si estamos reintentando
+      setError(null);
 
-        const data = await response.json();
+      const response = await fetch(
+        "https://pokeapi.co/api/v2/pokemon?limit=999",
+      );
+      if (!response.ok) throw new Error("Error conectando con PokéApi");
 
-        // 2. Obtener detalles eficientemente (Promise.all)
-        // Nota: Mapeamos los datos para extraer ID y hacer fetch de detalles necesarios
-        const detailsPromises = data.results.map(async (p) => {
-          const res = await fetch(p.url);
-          if (!res.ok) return null;
-          return res.json();
-        });
+      const data = await response.json();
 
-        const detailsRaw = await Promise.all(detailsPromises);
-        const validDetails = detailsRaw.filter((d) => d !== null);
+      const detailsPromises = data.results.map(async (p) => {
+        const res = await fetch(p.url);
+        if (!res.ok) return null;
+        return res.json();
+      });
 
-        // 3. Formatear datos para nuestra UI
-        const formattedPokemon = validDetails.map((p) => ({
-          id: p.id,
-          name: p.name,
-          types: p.types.map((t) => t.type.name),
-          image:
-            p.sprites.other["official-artwork"].front_default ||
-            p.sprites.front_default,
-        }));
+      const detailsRaw = await Promise.all(detailsPromises);
+      const validDetails = detailsRaw.filter((d) => d !== null);
 
-        // Extraer todos los tipos únicos para el selector
-        const types = [...new Set(formattedPokemon.flatMap((p) => p.types))];
+      const formattedPokemon = validDetails.map((p) => ({
+        id: p.id,
+        name: p.name,
+        types: p.types.map((t) => t.type.name),
+        image:
+          p.sprites.other["official-artwork"].front_default ||
+          p.sprites.front_default,
+      }));
 
-        setAvailableTypes(types);
-        setPokemonList(formattedPokemon);
-      } catch (err) {
-        // Bonus: Manejo de Errores
-        setError(
-          "¡Ups! La API ha fallado. Por favor revisa tu conexión o intenta más tarde.",
-        );
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const types = [...new Set(formattedPokemon.flatMap((p) => p.types))];
 
-    fetchPokemon();
+      setAvailableTypes(types);
+      setPokemonList(formattedPokemon);
+
+      // Si todo sale bien, aseguramos que el error se mantenga nulo
+      setError(null);
+    } catch (err) {
+      setError("¡Ups! La API ha fallado. Reintentando conexión...");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // --- Lógica de Filtrado Avanzado (Requerimiento C) ---
+  // 2. EFECTO INICIAL
+  useEffect(() => {
+    fetchPokemon();
+  }, [fetchPokemon]);
+
+  // 3. EFECTO DE RECONEXIÓN INTELIGENTE
+  // <--- NUEVO: Detecta cuando vuelve internet o reintenta cada 5s si hay error
+  useEffect(() => {
+    let intervalId;
+
+    // A. Si hay error, configurar un intervalo para reintentar cada 5 segundos
+    if (error) {
+      intervalId = setInterval(() => {
+        console.log("Intentando reconectar con la API...");
+        fetchPokemon();
+      }, 5000);
+    }
+
+    // B. Detectar si el navegador recupera conexión a internet (Evento nativo)
+    const handleOnline = () => {
+      console.log("Conexión a internet detectada, recargando...");
+      fetchPokemon();
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    // Limpieza al desmontar o cuando el error se resuelve
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [error, fetchPokemon]);
+
+  // --- Lógica de Filtrado (Sin cambios) ---
   const filteredPokemon = useMemo(() => {
     return pokemonList.filter((poke) => {
       const rawTerm = searchTerm.toLowerCase().trim();
       const cleanTerm = rawTerm.replace("#", "");
-
       const idString = poke.id.toString();
-
       const matchName = poke.name.toLowerCase().includes(rawTerm);
-
       const isNumberSearch = !isNaN(cleanTerm) && cleanTerm !== "";
       const matchID =
         isNumberSearch &&
         (idString.includes(cleanTerm) || parseInt(cleanTerm) === poke.id);
-
       const matchesSearch = matchName || matchID;
-
       const matchesType =
         selectedTypes.length === 0 ||
         poke.types.some((t) => selectedTypes.includes(t));
 
       if (isNotMode) {
-        // Si hay texto escrito, invertimos la coincidencia de búsqueda
         const excludeSearch = rawTerm ? !matchesSearch : true;
-
-        // Si hay tipos seleccionados, invertimos la coincidencia de tipos
         const excludeType =
           selectedTypes.length > 0
             ? !poke.types.some((t) => selectedTypes.includes(t))
             : true;
-
         return excludeSearch && excludeType;
       } else {
-        // Modo Normal (Inclusivo)
         return matchesSearch && matchesType;
       }
     });
   }, [pokemonList, searchTerm, selectedTypes, isNotMode]);
 
-  // --- Handlers ---
   const handleTypeToggle = (type) => {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   };
 
-  // --- Render ---
   return (
     <div className="pokedex-container">
       <header className="header">
@@ -143,9 +156,7 @@ const Pokedex = () => {
         </h1>
       </header>
 
-      {/* Barra de Herramientas (Super Buscador) */}
       <div className="toolbar">
-        {/* Input Texto */}
         <div className="input-group">
           <label>Búsqueda (Nombre/ID)</label>
           <input
@@ -156,7 +167,6 @@ const Pokedex = () => {
           />
         </div>
 
-        {/* Selector de Tipos (Múltiple) */}
         <div className="input-group">
           <label>Filtro de Tipos (Selección múltiple)</label>
           <div className="type-selector">
@@ -178,7 +188,6 @@ const Pokedex = () => {
           </div>
         </div>
 
-        {/* Switch NOT */}
         <div className="input-group switch-group">
           <label>Modo de Exclusión</label>
           <div
@@ -193,18 +202,26 @@ const Pokedex = () => {
         </div>
       </div>
 
-      {/* Manejo de Estados de UI */}
-      {error && <div className="error-banner">⚠️ {error}</div>}
+      {/* ERROR BANNER: Ahora avisa que está reintentando */}
+      {error && (
+        <div className="error-banner">
+          ⚠️ {error} <span className="retry-spinner">⏳</span>
+        </div>
+      )}
 
       {loading ? (
-        <div className="loader">Cargando 999 especímenes...</div>
+        <div className="loader">
+          {/* Si ya hay un error previo y estamos cargando, es un reintento */}
+          {error
+            ? "Reintentando conexión con la base de datos..."
+            : "Cargando 999 especímenes..."}
+        </div>
       ) : (
         <>
           <div className="results-count">
             Encontrados: <strong>{filteredPokemon.length}</strong> criaturas
           </div>
 
-          {/* Grid de Resultados */}
           <div className="pokemon-grid">
             {filteredPokemon.map((poke) => (
               <div
@@ -243,3 +260,4 @@ const Pokedex = () => {
 };
 
 export default Pokedex;
+

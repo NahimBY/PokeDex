@@ -1,0 +1,262 @@
+:root {
+  --primary: #ff4747; /* Rojo Pokeball */
+  --bg: #f8f9fa;
+  --text: #333;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+.pokedex-container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.header h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+  border-bottom: 4px solid var(--primary);
+  display: inline-block;
+  padding-bottom: 5px;
+}
+.header span {
+  font-weight: 300;
+  color: #7f8c8d;
+}
+
+/* Toolbar (Super Buscador) */
+.toolbar {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+  border: 1px solid #eee;
+}
+
+.input-group {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #777;
+}
+
+input[type="text"] {
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+input[type="text"]:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* Type Selector (Badges) */
+.type-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.type-badge {
+  color: #777;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s;
+  text-transform: capitalize;
+}
+
+.type-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.type-badge.active {
+  color: #333;
+  font-weight: bold;
+  border-color: #333;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Switch Toggle */
+.switch-group {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-switch {
+  width: 60px;
+  height: 30px;
+  background-color: #ccc;
+  border-radius: 30px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.toggle-switch.active {
+  background-color: var(--primary);
+}
+
+.switch-handle {
+  width: 26px;
+  height: 26px;
+  background-color: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.toggle-switch.active .switch-handle {
+  transform: translateX(30px);
+}
+
+.switch-label {
+  font-size: 0.9rem;
+  margin-top: 5px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+/* Grid System */
+.pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.pokemon-card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.pokemon-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.poke-id {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-weight: 900;
+  opacity: 0.3;
+  font-size: 1.2rem;
+}
+
+.img-container {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-container img {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.2));
+}
+
+.poke-name {
+  text-transform: capitalize;
+  margin: 15px 0 10px;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.poke-types {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.type-tag {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #444;
+}
+
+/* Utilities */
+.loader {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #888;
+  margin-top: 50px;
+}
+
+.error-banner {
+  background-color: #ffecec;
+  color: #d63031;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ff7675;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+  }
+  .input-group {
+    width: 100%;
+  }
+}
